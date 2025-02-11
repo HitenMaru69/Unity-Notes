@@ -1,0 +1,117 @@
+If you want to check which Image is when we point mouse pointer over image , To check this there is two method .
+
+1. It is very simple and easy 
+   It can done by using unity inbuild method
+   - first you need to add Interface in your script
+      IPointerEnterHandler:- It is check that mouse pointer is over the Image or not
+      IPointerDownHandler:- It is check that mouse button is down or not over the Image
+      IPointerUpHandler:- It is check that mouse button is up or not over the Image
+      IPointerClickHandler:- It is check that mouse button is click over the Image
+
+   Demo Script:-
+   
+
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
+
+public class TestScript : MonoBehaviour,IPointerEnterHandler,IPointerUpHandler,IPointerDownHandler
+{
+   
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        
+    }
+
+
+}
+
+
+2. We can use a Raycast for detect Image
+   
+   -For RayCast in UI you need to GraphicRaycaster Component in Canvas. It will allow the raycast in that canvas.
+   -You need the Pointerdata for check our mosepointer is over the image or not. (Pointerdata is a part of a EventSystem)
+   -and last you need Eventsystem 
+
+  Demo Script:-
+
+ using NUnit.Framework;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+public class TestScript3 : MonoBehaviour
+{
+    private GraphicRaycaster graphicRaycaster;
+    private PointerEventData pointerEventData;
+    private EventSystem eventSystem;
+
+
+    public Image selectedImage;
+
+    private void Awake()
+    {
+        graphicRaycaster = FindFirstObjectByType<GraphicRaycaster>();
+        eventSystem = FindFirstObjectByType<EventSystem>();
+    }
+
+    private void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            selectedImage = GetImage();
+        }
+
+        if (Input.GetMouseButton(0))
+        {
+            Image newImage = GetImage();
+
+            if (newImage != null && newImage != selectedImage)
+            {
+                selectedImage = newImage;
+            }
+        }
+
+        if (Input.GetMouseButtonUp(0)) { 
+        
+            selectedImage = null;
+        }
+    }
+
+    private Image GetImage()
+    {
+        pointerEventData = new PointerEventData(eventSystem);
+        pointerEventData.position = Input.mousePosition;
+
+        List<RaycastResult> raycast = new();
+
+        graphicRaycaster.Raycast(pointerEventData, raycast);
+
+        foreach (RaycastResult result in raycast)
+        {
+            Image image = result.gameObject.GetComponent<Image>();
+
+            if (image != null && image.gameObject.tag == "Player")
+            {
+
+                return image;
+            }
+        }
+        return null;
+    }
+}
+
+ 
+    
+    
