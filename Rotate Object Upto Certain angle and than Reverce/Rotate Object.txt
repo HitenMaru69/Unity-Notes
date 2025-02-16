@@ -1,0 +1,73 @@
+In unity To rotate object we can use transform.Rotate()
+
+But if we want to Rotate Object for Indivisual like secific axis than we use transform.eulerAngles.
+
+transform.eulerAngles by using this we can rotate object around any one axis like x,y or z
+
+Note :- transform.eulerAngles this is give value to 0 - 360;
+
+so we want to rotate object like clockwise and than anti clockwise 
+
+1.so first we have to rotate object using  transform.Rotate();
+2. than we get the angle that we have to rotate object to reverce direction by using transform.eulerAngles
+3. transform.eulerAngles this give only 0-360 value so we have to normolice rotation.
+  Like 180 + 180 = 360
+  so if we reached to 180 that minus the value from the 360
+  Like 181 - 360 = -179
+
+so this is how we set clock and anti clockwise rotation
+
+Demo Script
+
+using UnityEngine;
+
+public class RotateHook : MonoBehaviour
+{
+    [SerializeField] GameObject rotateObject;
+    [SerializeField] float rotateSpeed;
+    [SerializeField] bool isReverceRotate;
+
+    private void Start()
+    {
+      
+    }
+
+    private void Update()
+    {
+        StartRotate();
+    }
+
+
+    private void StartRotate()
+    {
+
+        float currentRotation = rotateObject.transform.eulerAngles.z;
+
+        if (isReverceRotate)
+        {
+            rotateObject.transform.Rotate(new Vector3(0, 0, -40) * rotateSpeed * Time.deltaTime);
+        }
+        else 
+        {
+            rotateObject.transform.Rotate(new Vector3(0, 0, 40) * rotateSpeed * Time.deltaTime);
+        }
+
+        if(currentRotation > 180)
+        {
+            currentRotation -= 360;
+        }
+
+
+        if (currentRotation >= 40f )
+        {
+            isReverceRotate = true;
+        }
+
+        if(currentRotation <= -40f)
+        {
+            isReverceRotate = false;
+        }
+
+    }
+}
+
