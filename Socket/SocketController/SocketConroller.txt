@@ -1,0 +1,100 @@
+using System;
+using UnityEngine;
+using BestHTTP.SocketIO3;
+using System.Collections.Generic;
+
+public class SocketController : MonoBehaviour
+{
+    public static SocketController Instance { get; private set; }
+    public static bool IsAuthenticated { get; private set; }
+    public static bool IsConnected { get; private set; }
+
+    private static SocketManager _socketManager;
+    public static SocketManager SocketManager => _socketManager;
+
+    private string serverUrl = "https://your-server-url.com"; 
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    public void Connect()
+    {
+        if (_socketManager != null)
+        {
+            Debug.LogWarning("Socket already connected!");
+            return;
+        }
+
+        Debug.Log("Connecting to Socket...");
+        SocketOptions options = new SocketOptions { AutoConnect = true };
+        _socketManager = new SocketManager(new Uri(serverUrl), options);
+
+        _socketManager.Socket.On("connect", OnConnected);
+        _socketManager.Socket.On("disconnect", OnDisconnected);
+        _socketManager.Socket.On("error", OnError);
+    }
+
+    private void OnConnected()
+    {
+        IsConnected = true;
+        Debug.Log("Socket Connected!");
+        Authenticate();
+    }
+
+    private void OnDisconnected()
+    {
+        IsConnected = false;
+        Debug.Log("Socket Disconnected!");
+    }
+
+    private void OnError()
+    {
+        Debug.LogError("Socket Error!");
+    }
+
+    public void Disconnect()
+    {
+        _socketManager?.Socket.Disconnect();
+        _socketManager = null;
+        IsConnected = false;
+    }
+
+    private void Authenticate()
+    {
+        Dictionary<string, string> authData = new() { { "id", "User123" } };
+        EmitAcknowledgement<AuthResponse>(OnAuthenticated, "authenticate", authData);
+    }
+
+    private void OnAuthenticated(AuthResponse response)
+    {
+        if (response.status == 1)
+        {
+            IsAuthenticated = true;
+            Debug.Log("User Authenticated!");
+        }
+        else
+        {
+            Debug.LogError("Authentication Failed!");
+        }
+    }
+
+    public static void Emit(string eventName, params object[] args)
+    {
+        _socketManager?.Socket.Emit(eventName, args);
+    }
+
+    public static void EmitAcknowledgement<T>(Action<T> callback, string eventName, params object[] data)
+    {
+        _socketManager?.Socket.ExpectAcknowledgement<T>(callback).Emit(eventName, data);
+    }
+}

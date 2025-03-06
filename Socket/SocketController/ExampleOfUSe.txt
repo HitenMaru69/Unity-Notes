@@ -1,0 +1,19 @@
+using UnityEngine;
+
+public class MultiplayerGameManager : MonoBehaviour
+{
+    private void OnEnable()
+    {
+        SocketController.Instance?.SocketManager.Socket.On<ScoreUpdatedResponse>("scoreUpdated", OnScoreUpdated);
+    }
+
+    private void OnDisable()
+    {
+        SocketController.Instance?.SocketManager.Socket.Off("scoreUpdated");
+    }
+
+    private void OnScoreUpdated(ScoreUpdatedResponse data)
+    {
+        Debug.Log("Score Updated: " + data.score);
+    }
+}
