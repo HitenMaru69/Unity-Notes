@@ -1,0 +1,33 @@
+Full Process of upload IOS Build on App Store 
+
+https://www.youtube.com/watch?v=8l2GT3_JiUU  
+
+
+=>> How To Make build for IOS
+
+-> Made Export for IOS
+-> Add in IOS MAC
+-> Now right click On Folder and Select -Open new Terminal at this folder
+-> Now Write in Termina
+    - sudo gem install cocoapods  (This is provide all data which is use for IOS Build)
+   Wait For Install after install write
+    - Pod install 
+-> Now open the build folder and you see the two main file
+    - Unity iPhone xcodeProject (Which is already in build)
+    - Unity iPhone xcodeWorksSpace (This is will generate after pod install)
+   Double click on - Unity iPhone xcodeWorksSpace    To Open project in XCode
+-> Now do All general setting Like Sign in , etc
+-> Connect iPhone and click on build 
+
+Note:- If there is any error occur like bitcode
+  go to build setting - find enable bitcode -  no
+
+
+This is a general process for all IOS build 
+
+If there is any third party plugin like Inapp purches than we have to add framework for that
+     Than Click On 
+  - Capability  button Left side top  and reqire things 
+
+For Example click Capability => add InappPurches
+
