@@ -1,0 +1,41 @@
+public enum SoundName {  // In this i can add sound name
+
+    Jump
+
+}
+
+
+[System.Serializable]
+public class Sounds    // This is class which holds sound 
+{
+    public SoundName soundName;
+    public AudioClip soundClip;
+}
+
+public class SoundManager : MonoBehaviour
+{
+
+    public static SoundManager instance;
+
+    [SerializeField] AudioSource backgroundAudioSource;
+    [SerializeField] AudioSource gameSoundAudioSource;
+
+    [SerializeField] Sounds[] gamesound;
+
+    private void Awake()
+    {
+        instance = this;
+    }
+
+    public void PlaySound(string name)
+    {
+        foreach (var sound in gamesound) 
+        { 
+            if(sound.soundName.ToString() == name)
+            {
+                gameSoundAudioSource.PlayOneShot(sound.soundClip);
+                break;
+            }
+        }
+    }
+}
