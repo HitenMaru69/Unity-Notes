@@ -6,7 +6,6 @@ using GoogleMobileAds.Api;
 using InterstitialAd = GoogleMobileAds.Api.InterstitialAd;
 using System;
 using UnityEngine.Advertisements;
-using RunnerRunner;
 using Newtonsoft.Json;
 using UISystem;
 using GoogleMobileAds.Mediation.Chartboost.Api;
