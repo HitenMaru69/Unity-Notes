@@ -1,0 +1,911 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using GoogleMobileAds;
+using GoogleMobileAds.Api;
+using InterstitialAd = GoogleMobileAds.Api.InterstitialAd;
+using System;
+using UnityEngine.Advertisements;
+using RunnerRunner;
+using Newtonsoft.Json;
+using UISystem;
+using GoogleMobileAds.Mediation.Chartboost.Api;
+using UnityEngine.UI;
+
+public class AdManager : MonoBehaviour, IUnityAdsInitializationListener, IUnityAdsLoadListener ,IUnityAdsShowListener
+{
+    public string adReward_id;
+
+    public bool isMobileAdsInitialised;
+
+    public static AdManager Instance;
+
+    public Canvas no_AdsCanvas;
+
+    public bool isSaveme;
+
+    public bool isAdComplete = false;
+
+    public GameObject claimRewardPanal;
+
+    [SerializeField] private int adcount = 0;
+    [SerializeField] AdsChooseScreen chooseScreen;
+       
+    int clAdCount = 0;
+    int spAdCount = 0;
+    int tokyoAdCount = 0;
+    
+
+    //private AudienceNetwork.InterstitialAd metainterstitialAd;
+    //private bool metaisInterstitialLoaded;
+    //private bool metaInterstitialdidClose;
+
+    //private RewardedVideoAd metarewardedVideoAd;
+    //private bool metaisRewardedLoaded;
+    //private bool metaRewardedidClose;
+
+#if UNITY_ANDROID
+    private string _adInterstitialId = "ca-app-pub-3940256099942544/1033173712";
+
+    private string _unityAdsId = "5557306";
+
+    private string _UnityInterstitialId = "Interstitial_Android";
+
+#elif UNITY_IPHONE
+  private string _adInterstitialId = "ca-app-pub-3940256099942544/4411468910";
+
+    private string _unityAdsId = "5557307";
+
+  private string _UnityInterstitialId = "Interstitial_iOS";
+
+#else
+    private string _unityAdsId = "5557306";
+  private string _adInterstitialId = "unused";
+#endif
+
+#if UNITY_ANDROID
+    private string _adRewardId = "ca-app-pub-9600132518730795/3888181022";// Live ID      
+    //private string _adRewardId =  "ca-app-pub-3940256099942544/5224354917";  // Test ID                                                                      
+
+
+
+    private string _UnityRewardId = "Rewarded_Android";
+
+#elif UNITY_IPHONE
+
+  private string _adRewardId =  "ca-app-pub-9600132518730795/6466667930"; // Live ID   
+  //private string _adRewardId =  "ca-app-pub-3940256099942544/1712485313" ;  //Test Id                               
+
+  private string _UnityRewardId = "Rewarded_iOS";
+
+#else
+  private string _adRewardId = "unused";
+#endif
+
+    private RewardedAd admobrewardedAd;
+    private InterstitialAd admobinterstitialAd;
+
+    private int outfitadCount;
+    private void Awake()
+    {
+        DontDestroyOnLoad(gameObject);
+        Instance = this;
+
+        chooseScreen = FindObjectOfType<AdsChooseScreen>();
+
+        isAdComplete = false;
+
+        //AudienceNetworkAds.Initialize();
+        MobileAds.Initialize((InitializationStatus initStatus) =>
+        {
+            Debug.Log("Admob Initialised");
+
+            GoogleMobileAds.Mediation.IronSource.Api.IronSource.SetConsent(true);
+            
+
+            Dictionary<string, AdapterStatus> map = initStatus.getAdapterStatusMap();
+            foreach (KeyValuePair<string, AdapterStatus> keyValuePair in map)
+            {
+                string className = keyValuePair.Key;
+                AdapterStatus status = keyValuePair.Value;
+                switch (status.InitializationState)
+                {
+                    case AdapterState.NotReady:
+                        // The adapter initialization did not complete.
+                        MonoBehaviour.print("Adapter: " + className + " not ready.");
+                        break;
+                    case AdapterState.Ready:
+                        // The adapter was successfully initialized.
+                        MonoBehaviour.print("Adapter: " + className + " is initialized.");
+                        break;
+                }
+            }
+
+            Chartboost.AddDataUseConsent(CBGDPRDataUseConsent.NonBehavioral);
+            Chartboost.AddDataUseConsent(CBCCPADataUseConsent.OptInSale);
+            isMobileAdsInitialised = true;
+    
+        });
+
+        //Unity Ads
+
+        //if (!Advertisement.isInitialized && Advertisement.isSupported)
+        //{
+        //    Debug.Log("Ad is load");
+        //    Advertisement.Initialize(_unityAdsId,this);
+        //}
+
+
+        StartCoroutine(LoadingAds());
+    }
+
+    public IEnumerator LoadingAds()
+    {
+        while (!isMobileAdsInitialised)
+        {
+            yield return null;
+        }
+
+        //LoadAdmobInterstitialAd();
+        LoadAdmobRewardedAd();
+
+        //LoadUnityInterstitialad();
+        //LoadUnityRewardad();
+        //while (!AudienceNetworkAds.IsInitialized())
+        //{
+        //    yield return null;
+        //}
+
+        //LoadMetaInterstitial();
+        //LoadMetaRewardedVideo();
+
+        yield return null;
+    }
+
+    #region Facebook Meta Ads
+
+    //    public void LoadMetaInterstitial()
+    //    {
+    //        // Create the interstitial unit with a placement ID (generate your own on the Facebook app settings).
+    //        // Use different ID for each ad placement in your app.
+    //        metainterstitialAd = new AudienceNetwork.InterstitialAd("YOUR_PLACEMENT_ID");
+
+    //        metainterstitialAd.Register(gameObject);
+
+    //        // Set delegates to get notified on changes or when the user interacts with the ad.
+    //        metainterstitialAd.InterstitialAdDidLoad = delegate ()
+    //        {
+    //            Debug.Log("Interstitial ad loaded.");
+    //            metaisInterstitialLoaded = true;
+    //            metaInterstitialdidClose = false;
+    //            string isAdValid = metainterstitialAd.IsValid() ? "valid" : "invalid";
+    //        };
+    //        metainterstitialAd.InterstitialAdDidFailWithError = delegate (string error)
+    //        {
+    //            Debug.Log("Interstitial ad failed to load with error: " + error);
+    //        };
+    //        metainterstitialAd.InterstitialAdWillLogImpression = delegate ()
+    //        {
+    //            Debug.Log("Interstitial ad logged impression.");
+    //        };
+    //        metainterstitialAd.InterstitialAdDidClick = delegate ()
+    //        {
+    //            Debug.Log("Interstitial ad clicked.");
+    //        };
+    //        metainterstitialAd.InterstitialAdDidClose = delegate ()
+    //        {
+    //            Debug.Log("Interstitial ad did close.");
+    //            metaInterstitialdidClose = true;
+    //            if (metainterstitialAd != null)
+    //            {
+    //                metainterstitialAd.Dispose();
+    //            }
+
+    //            LoadMetaInterstitial();
+    //        };
+
+    //#if UNITY_ANDROID
+    //        metainterstitialAd.interstitialAdActivityDestroyed = delegate () {
+    //            if (!metaInterstitialdidClose)
+    //            {
+    //                Debug.Log("Interstitial activity destroyed without being closed first.");
+    //                Debug.Log("Game should resume.");
+    //            }
+    //        };
+    //#endif
+
+    //        metainterstitialAd.LoadAd();
+    //    }
+
+    //    public void ShowMetaInterstitial()
+    //    {
+    //        if (metaisInterstitialLoaded)
+    //        {
+    //            metainterstitialAd.Show();
+    //            metaisInterstitialLoaded = false;
+    //        }
+    //        else
+    //        {
+    //            Debug.Log("Ad not loaded. Click load to request an ad.");
+    //        }
+    //    }
+
+
+    //    public void LoadMetaRewardedVideo()
+    //    {
+    //        // Create the rewarded video unit with a placement ID (generate your own on the Facebook app settings).
+    //        // Use different ID for each ad placement in your app.
+    //        metarewardedVideoAd = new RewardedVideoAd("YOUR_PLACEMENT_ID");
+
+    //        // For S2S validation you can create the rewarded video ad with the reward data
+    //        // Refer to documentation here:
+    //        // https://developers.facebook.com/docs/audience-network/android/rewarded-video#server-side-reward-validation
+    //        // https://developers.facebook.com/docs/audience-network/ios/rewarded-video#server-side-reward-validation
+    //        RewardData rewardData = new RewardData
+    //        {
+    //            UserId = "USER_ID",
+    //            Currency = "REWARD_ID"
+    //        };
+    //#pragma warning disable 0219
+    //        RewardedVideoAd s2sRewardedVideoAd = new RewardedVideoAd("YOUR_PLACEMENT_ID", rewardData);
+    //#pragma warning restore 0219
+
+    //        metarewardedVideoAd.Register(gameObject);
+
+    //        // Set delegates to get notified on changes or when the user interacts with the ad.
+    //        metarewardedVideoAd.RewardedVideoAdDidLoad = delegate ()
+    //        {
+    //            Debug.Log("RewardedVideo ad loaded.");
+    //            metaisRewardedLoaded = true;
+    //            metaRewardedidClose = false;
+    //            string isAdValid = metarewardedVideoAd.IsValid() ? "valid" : "invalid";
+    //        };
+    //        metarewardedVideoAd.RewardedVideoAdDidFailWithError = delegate (string error)
+    //        {
+    //            Debug.Log("RewardedVideo ad failed to load with error: " + error);
+    //        };
+    //        metarewardedVideoAd.RewardedVideoAdWillLogImpression = delegate ()
+    //        {
+    //            Debug.Log("RewardedVideo ad logged impression.");
+    //        };
+    //        metarewardedVideoAd.RewardedVideoAdDidClick = delegate ()
+    //        {
+    //            Debug.Log("RewardedVideo ad clicked.");
+    //        };
+
+    //        // For S2S validation you need to register the following two callback
+    //        // Refer to documentation here:
+    //        // https://developers.facebook.com/docs/audience-network/android/rewarded-video#server-side-reward-validation
+    //        // https://developers.facebook.com/docs/audience-network/ios/rewarded-video#server-side-reward-validation
+    //        metarewardedVideoAd.RewardedVideoAdDidSucceed = delegate ()
+    //        {
+    //            Debug.Log("Rewarded video ad validated by server");
+    //        };
+
+    //        metarewardedVideoAd.RewardedVideoAdDidFail = delegate ()
+    //        {
+    //            Debug.Log("Rewarded video ad not validated, or no response from server");
+    //        };
+
+    //        metarewardedVideoAd.RewardedVideoAdDidClose = delegate ()
+    //        {
+    //            Debug.Log("Rewarded video ad did close.");
+    //            metaRewardedidClose = true;
+    //            if (metarewardedVideoAd != null)
+    //            {
+    //                metarewardedVideoAd.Dispose();
+    //            }
+
+    //            LoadMetaRewardedVideo();
+    //        };
+
+    //#if UNITY_ANDROID
+    //        /*
+    //         * Only relevant to Android.
+    //         * This callback will only be triggered if the Rewarded Video activity
+    //         * has been destroyed without being properly closed. This can happen if
+    //         * an app with launchMode:singleTask (such as a Unity game) goes to
+    //         * background and is then relaunched by tapping the icon.
+    //         */
+    //        metarewardedVideoAd.RewardedVideoAdActivityDestroyed = delegate ()
+    //        {
+    //            if (!metaRewardedidClose)
+    //            {
+    //                Debug.Log("Rewarded video activity destroyed without being closed first.");
+    //                Debug.Log("Game should resume. User should not get a reward.");
+    //            }
+    //        };
+    //#endif
+
+    //        // Initiate the request to load the ad.
+    //        metarewardedVideoAd.LoadAd();
+    //    }
+
+    //    public void ShowMetaRewardedVideo()
+    //    {
+    //        if (metaisRewardedLoaded)
+    //        {
+    //            metarewardedVideoAd.Show();
+    //            metaisRewardedLoaded = false;
+    //        }
+    //        else
+    //        {
+    //            Debug.Log("Ad not loaded. Click load to request an ad.");
+    //        }
+    //    }
+
+    #endregion
+
+
+    #region Google Admob Ads
+    public void LoadAdmobInterstitialAd()
+    {
+        // Clean up the old ad before loading a new one.
+        if (admobinterstitialAd != null)
+        {
+            admobinterstitialAd.Destroy();
+            admobinterstitialAd = null;
+        }
+
+        Debug.Log("Loading the interstitial ad.");
+
+        var adRequest = new AdRequest();
+
+        InterstitialAd.Load(_adInterstitialId, adRequest,
+            (InterstitialAd ad, LoadAdError error) =>
+            {
+                if (error != null || ad == null)
+                {
+                    Debug.LogError("interstitial ad failed to load an ad " +
+                                   "with error : " + error);
+                    return;
+                }
+
+                Debug.Log("Interstitial ad loaded with response : "
+                          + ad.GetResponseInfo());
+
+                admobinterstitialAd = ad;
+
+                RegisterFulladEventHandlers(admobinterstitialAd);
+            });
+    }
+
+    public void ShowAdmobInterstitialAd()
+    {
+        if (admobinterstitialAd != null && admobinterstitialAd.CanShowAd())
+        {
+            Debug.Log("Showing interstitial ad.");
+            admobinterstitialAd.Show();
+        }
+        else
+        {
+
+            Debug.LogError("Interstitial ad is not ready yet.");
+        }
+    }
+
+    private void RegisterFulladEventHandlers(InterstitialAd ad)
+    {
+        // Raised when the ad is estimated to have earned money.
+        ad.OnAdPaid += (AdValue adValue) =>
+        {
+            Debug.Log(String.Format("Interstitial ad paid {0} {1}.",
+                adValue.Value,
+                adValue.CurrencyCode));
+        };
+        // Raised when an impression is recorded for an ad.
+        ad.OnAdImpressionRecorded += () =>
+        {
+            Debug.Log("Interstitial ad recorded an impression.");
+        };
+        // Raised when a click is recorded for an ad.
+        ad.OnAdClicked += () =>
+        {
+            Debug.Log("Interstitial ad was clicked.");
+        };
+        // Raised when an ad opened full screen content.
+        ad.OnAdFullScreenContentOpened += () =>
+        {
+            Debug.Log("Interstitial ad full screen content opened.");
+        };
+        // Raised when the ad closed full screen content.
+        ad.OnAdFullScreenContentClosed += () =>
+        {
+            Debug.Log("Interstitial ad full screen content closed.");
+            LoadAdmobInterstitialAd();
+        };
+        // Raised when the ad failed to open full screen content.
+        ad.OnAdFullScreenContentFailed += (AdError error) =>
+        {
+            Debug.LogError("Interstitial ad failed to open full screen content with error : "
+                + error);
+            LoadAdmobInterstitialAd();
+        };
+    }
+
+    public void LoadAdmobRewardedAd()
+    {
+        // Clean up the old ad before loading a new one.
+        if (admobrewardedAd != null)
+        {
+            admobrewardedAd.Destroy();
+            admobrewardedAd = null;
+        }
+
+        Debug.Log("Loading the rewarded ad.");
+
+        // create our request used to load the ad.
+        var adRequest = new AdRequest();
+
+        // send the request to load the ad.
+        RewardedAd.Load(_adRewardId, adRequest,
+            (RewardedAd ad, LoadAdError error) =>
+            {
+                // if error is not null, the load request failed.
+                if (error != null || ad == null)
+                {
+                    Debug.LogError("Rewarded ad failed to load an ad " +
+                                   "with error : " + error);
+                    Invoke(nameof(LoadAdmobRewardedAd), 2f);
+                    return;
+                }
+
+                Debug.Log("Rewarded ad loaded with response : "
+                          + ad.GetResponseInfo());
+
+                admobrewardedAd = ad;
+
+                RegisterRewardEventHandlers(admobrewardedAd);
+
+
+            });
+    }
+
+    public bool isRewardGranted = false;
+    public void ShowAdmobRewardedAd()
+    {
+        const string rewardMsg =
+            "Rewarded ad rewarded the user. Type: {0}, amount: {1}.";
+
+#if UNITY_IPHONE
+        Time.timeScale = 0;    
+#endif
+
+        if (admobrewardedAd != null && admobrewardedAd.CanShowAd())
+        {
+            admobrewardedAd.Show((GoogleMobileAds.Api.Reward reward) =>
+            {
+                Debug.Log(String.Format(rewardMsg, reward.Type, reward.Amount));
+                isRewardGranted = true;
+                // Code in Provide Reward
+            });
+        }
+
+        else
+        {
+            if (isSaveme)
+            {
+                TerrainController.instance.noAdsCavcas.enabled = true;
+                isSaveme = false;
+            }
+            else
+            {
+                no_AdsCanvas.enabled = true;
+            }
+            //no_AdsCanvas.enabled = true;
+        }
+    }
+
+
+
+    private void RegisterRewardEventHandlers(RewardedAd ad)
+    {
+        // Raised when the ad is estimated to have earned money.
+        ad.OnAdPaid += (AdValue adValue) =>
+        {
+            Debug.Log(String.Format("Rewarded ad paid {0} {1}.",
+                adValue.Value,
+                adValue.CurrencyCode));
+            Debug.Log("yes reward is paid");
+        };
+        // Raised when an impression is recorded for an ad.
+        ad.OnAdImpressionRecorded += () =>
+        {
+            Debug.Log("Rewarded ad recorded an impression.");
+        };
+        // Raised when a click is recorded for an ad.
+        ad.OnAdClicked += () =>
+        {
+            Debug.Log("Rewarded ad was clicked.");
+        };
+        // Raised when the ad opened full screen content.
+        ad.OnAdFullScreenContentOpened += () =>
+        {
+#if UNITY_ANDROID
+            LoadAdmobRewardedAd();
+#endif
+            Debug.Log("Rewarded ad full screen content opened.");
+        };
+        // Raised when the ad closed full screen content.
+        ad.OnAdFullScreenContentClosed += () =>
+        {
+
+#if UNITY_IPHONE
+            Time.timeScale = 1;
+            LoadAdmobRewardedAd();
+#endif
+            if(isRewardGranted)
+            {
+                isRewardGranted = false;
+                ProvideReward();
+            }
+            Debug.Log("Rewarded ad full screen content closed.");
+        };
+        // Raised when the ad failed to open full screen content.
+        ad.OnAdFullScreenContentFailed += (AdError error) =>
+        {
+            LoadAdmobRewardedAd();
+            Debug.LogError("Rewarded ad failed to open full screen content with error : "
+                + error);
+        };
+    }
+
+    public void ProvideReward()
+    {
+        Debug.Log("Reward get 1");
+        if (isSaveme == true)
+        {
+            Debug.Log("1");
+            APIManager.Instance.ClaimAdsReward(new Add_id("", "true"), onSuccessRestartGame, onSFaliedRestartGame);
+            ViewController.Instance.HidePopup(PopupName.PauseMenu);
+            CountDownPopup.Instance.StartCountDown();
+            Modules.RestatGameAfterAD();
+            isSaveme = false;
+        }
+        else if (Modules.IsDoubleTheCoins)
+        {
+            Debug.Log("2");
+            Modules.IsDoubleTheCoins = false;
+            ResultScreen.instance.DoubleTheCoins();
+
+        }
+        else if (Modules.isWatchOutfitAd)
+        {
+            if (PlayerPrefs.GetInt("outfitadCount", 0) < 2)
+            {
+                Debug.Log("3");
+                outfitadCount = PlayerPrefs.GetInt("outfitadCount", 0);
+                outfitadCount++;
+                PlayerPrefs.SetInt("outfitadCount", outfitadCount);
+                if (outfitadCount == 1)
+                {
+                    AvtarSelectionScreen.Instance.outfitBtnImg.sprite = AvtarSelectionScreen.Instance.outfitad1Sprite;
+
+                }
+                if (outfitadCount >= 2)
+                {
+                    AvtarSelectionScreen.Instance.outfitBtnImg.sprite = AvtarSelectionScreen.Instance.outfitWithoutadSprite;
+                    AvtarSelectionScreen.Instance.clothe.SetActive(true);
+                }
+            }
+
+            Modules.isWatchOutfitAd = false;
+
+        }
+        else if (Modules.isClEnvAd)
+        {
+            clAdCount = PlayerPrefs.GetInt("clAdCount", 0);
+            clAdCount++;
+            PlayerPrefs.SetInt("clAdCount", clAdCount);
+            if (clAdCount == 1)
+            {
+                HomeScreen.Instance.CLWatchAdImg.sprite = HomeScreen.Instance.watchAd1Sprite;
+            }
+            if (clAdCount == 2)
+            {
+                HomeScreen.Instance.CLWatchAdPanel.gameObject.SetActive(false);
+                HomeScreen.Instance.CallAPIUnlockEnvironment(HomeScreen.candyLandname);
+
+            }
+            Modules.isClEnvAd = false;
+        }
+        else if (Modules.isSpEnvAd)
+        {
+            spAdCount = PlayerPrefs.GetInt("spAdCount", 0);
+            spAdCount++;
+            PlayerPrefs.SetInt("spAdCount", spAdCount);
+            if (spAdCount == 1)
+            {
+                HomeScreen.Instance.SPWatchAdImg.sprite = HomeScreen.Instance.watchAd1Sprite;
+            }
+            if (spAdCount == 2)
+            {
+                HomeScreen.Instance.SPWatchAdPanel.gameObject.SetActive(false);
+                HomeScreen.Instance.CallAPIUnlockEnvironment(HomeScreen.steamPunkname);
+
+            }
+            Modules.isSpEnvAd = false;
+        }
+        else if (Modules.isTokyoEnvAd)
+        {
+            tokyoAdCount = PlayerPrefs.GetInt("tokyoAdCount", 0);
+            tokyoAdCount++;
+            PlayerPrefs.SetInt("tokyoAdCount", tokyoAdCount);
+            if (tokyoAdCount == 1)
+            {
+                HomeScreen.Instance.TokyoWatchAdImg.sprite = HomeScreen.Instance.watchAd1Sprite;
+            }
+            if (tokyoAdCount == 2)
+            {
+                HomeScreen.Instance.TokyoWatchAdPanel.gameObject.SetActive(false);
+                HomeScreen.Instance.CallAPIUnlockEnvironment(HomeScreen.tokyoname);
+
+            }
+            Modules.isTokyoEnvAd = false;
+        }
+
+        else if (Modules.isWatchClaimRewardAD)
+        {
+            Debug.Log("4");
+            adcount += 1;
+
+            if (adcount >= 2)
+            {
+                DailyRewardPopUp dailyRewardPopUp = FindObjectOfType<DailyRewardPopUp>();
+                dailyRewardPopUp.CalimAdReward();
+                adcount = 0;
+            }
+
+            ViewController.Instance.HidePopup(PopupName.DailyRewardPopUp);
+            ViewController.Instance.ShowPopup(PopupName.DailyRewardPopUp);
+
+            Modules.isWatchClaimRewardAD = false;
+        }
+        else
+        {
+            Debug.Log("5");
+            Debug.Log("This is called in adreward");
+            //claimAdsReward();
+            ActiveCLaimRewardPanal();
+        }
+    }
+
+
+    #endregion
+
+
+    #region Unity Ads
+
+    public void LoadUnityInterstitialad()
+    {
+        if (_unityAdsId != null)
+        {
+            Advertisement.Load(_UnityInterstitialId);
+        }
+
+    }
+
+    public void ShowUnityInterstitialad()
+    {
+        if (Advertisement.isInitialized && Advertisement.isSupported)
+        {
+            Advertisement.Show(_UnityInterstitialId,this);
+        }
+
+    }
+
+
+    public void LoadUnityRewardad()
+    {
+        if (_unityAdsId != null)
+        {
+            Advertisement.Load(_UnityRewardId,this);
+        }
+
+    }
+
+    public void ShowUnityRewardad()
+    {
+        if (_unityAdsId != null)
+        {
+           Advertisement.Show(_UnityRewardId,this);
+        }
+        else
+        {
+            if (isSaveme == true)
+            {
+                TerrainController.instance.noAdsCavcas.enabled = true;
+                isSaveme = false;
+            }
+            else
+            {
+                no_AdsCanvas.enabled = true;
+            }
+        }
+    }
+
+
+    public void OnInitializationComplete()
+    {
+       
+        Debug.Log("Unity Ads initialization complete.");
+    }
+
+    public void OnInitializationFailed(UnityAdsInitializationError error, string message)
+    {
+        Debug.Log($"Unity Ads Initialization Failed: {error.ToString()} - {message}");
+    }
+
+    public void OnUnityAdsAdLoaded(string placementId)
+    {
+        Debug.Log("Unity Ads Load complete.");
+        
+    }
+
+    public void OnUnityAdsFailedToLoad(string placementId, UnityAdsLoadError error, string message)
+    {
+        if (placementId.Equals(_UnityInterstitialId))
+        {
+            Debug.Log($"Error loading Ad Unit: {placementId} - {error.ToString()} - {message}");
+        }
+        if (placementId.Equals(_UnityRewardId))
+        {
+            Debug.Log($"Error loading Ad Unit: {placementId} - {error.ToString()} - {message}");
+        }
+    }
+
+   
+
+    public void OnUnityAdsShowComplete(string placementId, UnityAdsShowCompletionState showCompletionState)
+    {
+        if (placementId.Equals(_UnityRewardId) && showCompletionState.Equals(UnityAdsShowCompletionState.COMPLETED))
+        {
+            LoadUnityRewardad();
+            Debug.Log("Called Reward Api ");
+            if (isSaveme == true)
+            {
+                APIManager.Instance.ClaimAdsReward(new Add_id("", "true"),onSuccessRestartGame,onSFaliedRestartGame);
+                Modules.RestatGameAfterAD();
+                isSaveme = false;
+            }
+
+            else
+            {
+                claimAdsReward();
+            }
+
+        }
+
+        else
+        {
+            Debug.Log("Ads closed");
+        }
+
+    }
+
+    public void OnUnityAdsShowFailure(string placementId, UnityAdsShowError error, string message)
+    {
+        Debug.Log("fail to show unity ads" + error);
+        no_AdsCanvas.enabled = true;
+    }
+
+    public void OnUnityAdsShowStart(string placementId)
+    {
+        
+        LoadUnityRewardad();
+    }
+
+    public void OnUnityAdsShowClick(string placementId)
+    {
+
+    }
+
+    #endregion
+
+    void OnDestroy()
+    {
+        // Dispose of rewardedVideo ad when the scene is destroyed
+        //if (metarewardedVideoAd != null)
+        //{
+        //    metarewardedVideoAd.Dispose();
+        //}
+        //if (metainterstitialAd != null)
+        //{
+        //    metainterstitialAd.Dispose();
+        //}
+
+        if (admobinterstitialAd != null)
+        {
+            admobinterstitialAd.Destroy();
+            admobinterstitialAd = null;
+        }
+        if (admobrewardedAd != null)
+        {
+            admobrewardedAd.Destroy();
+            admobrewardedAd = null;
+        }
+
+        Debug.Log("All ads were destroyed!");
+    }
+
+   
+    public void claimAdsReward()
+    {
+        APIManager.Instance.ClaimAdsReward(new Add_id(adReward_id, "false"), onSuccessClaimReward, onfailedClaimReward);
+        PlayerPrefs.SetInt(adReward_id, 1);
+    }
+
+    private void onfailedClaimReward(string msg)
+    {
+        Debug.Log("msg:" + msg);
+    }
+
+    private void onSuccessClaimReward(string msg)
+    {
+        Debug.Log("msg:" + msg);
+        LoginData loginData = new LoginData();
+        loginData.firebase_id = PlayerPrefs.GetString("FCM_Token");
+        APIManager.Instance.AutoLogin(loginData,AutoLoginApiDataSet, onfailedClaimReward);
+    }
+
+    private void onSuccessRestartGame(string msg)
+    {
+        Debug.Log("Success" + msg);
+    }
+
+    private void onSFaliedRestartGame(string msg)
+    {
+        Debug.Log("Failed" + msg);
+    }
+
+    public void AutoLoginApiDataSet(string msg)
+    {
+        AutoLoginData autoLoginData = JsonConvert.DeserializeObject<AutoLoginData>(msg);
+
+        Debug.Log("totalcoins:" + autoLoginData.data.user_profile.total_available_coins.ToString());
+
+        Modules.totalCoin = autoLoginData.data.user_profile.total_available_coins;
+        Modules.SaveCoin();
+
+        Debug.Log("totalshield:" + Convert.ToInt32(autoLoginData.data.powerups.shield));
+
+        Modules.totalSkis = Convert.ToInt32(autoLoginData.data.powerups.shield);
+        Modules.SaveSkis();
+
+        Modules.totalKey = autoLoginData.data.user_profile.total_available_keys;
+        Modules.SaveKey();
+        ViewController.Instance.ChangeScreen(ScreenName.AdsScreen);
+    }
+
+    public void CloseNOAdsCanvas()
+    {
+        no_AdsCanvas.enabled = false;
+    }
+
+    public void ActiveCLaimRewardPanal()
+    {
+        isAdComplete = true;
+    }
+
+    public void ShowPanel()
+    {
+        claimRewardPanal.SetActive(true);
+
+        for (int i = 0; i < chooseScreen.claimRewardImg.Count; i++)
+        {
+            chooseScreen.ActiveImage[0].SetActive(true);
+            Image im = chooseScreen.ActiveImage[i].GetComponent<Image>();
+            im.sprite = chooseScreen.claimRewardImg[i];
+        }
+
+        isAdComplete = false;
+    }
+
+    public void DoubleScore()
+    {
+        Modules.scorePlayer = ((Mathf.Ceil((int)Modules.scorePlayer *2  + 1 ))) ;
+        Modules.HandleGameOver();
+    }
+
+}
+

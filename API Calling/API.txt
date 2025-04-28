@@ -1,0 +1,655 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Net.Http;
+using UnityEngine;
+using UnityEngine.Networking;
+using UnityEngine.UI;
+using UISystem;
+using LitJson;
+using Newtonsoft.Json;
+using static EnterAge_Screen;
+//using UnityEngine.UIElements;
+
+
+/// <summary>
+/// Create Centeral instance for Place API endpoint and Write code.
+/// </summary>
+
+
+    public class APIManager : MonoBehaviour
+    {
+        public static APIManager Instance;
+
+
+        /*
+        //[SerializeField]
+        private bool isStagingAPI = true; //using this temporary for QA build
+        //[SerializeField]
+        private string StagingBaseURL = "http://192.168.2.77:8005/";//QA
+        //[SerializeField]
+        //private string LiveBaseURL = "https://sschess.staging-server.in"; //DEV  // Satging = https://runner-runner.staging-server.in
+        private string LiveBaseURL = "https://sschess.staging-server.in"; //Beta
+
+
+
+        //QA/DEV photon key   e2b871ca-f855-43ad-a386-85a48abf3e7e
+        //Prod photon key   85c35ca3-ac8a-4de6-b856-3cc7234b519f
+        */
+        public string versionCode;
+
+        [HideInInspector] public AssetBundle ForUnloadAsset;
+
+        public string BaseURL
+        {
+            get
+            {
+                return BuildConfigurator.activeConfig.baseURL;
+            }
+        }
+
+       public struct APIEndPoints
+       {
+            public static string Login = "/user/login";
+            public static string GameComplete = "/game/submitScore";
+            public static string GameHistory = "/game/getGameHistory";
+            public static string GameLeaderboard = "/game/leaderboard";
+            public static string AutoLogin = "/user/auto-login";
+            public static string GetRewards = "/reward/reward-list";
+            public static string ClaimSpecialReward = "/reward/claim-specialReward";
+            public static string GetSpecialRewards = "/reward/special-reward-list";
+            public static string VerifyEmail = "/user/verify-email";
+            public static string Register = "/user/register";
+            public static string ClaimReward = "/reward/claim-reward";
+            public static string DeleteAccount = "/user/delete-account";
+            public static string LogOut = "/user/user-logout";
+            public static string EditProfile = "/user/edit-profile";
+            public static string WhatsNew = "/whatsnew/whatsnew-list";
+            public static string NotificationList = "/notification/fetch";
+            public static string NotificationRead = "/notification/read";
+            public static string NotificationAllRead = "/notification/mark-all-read";
+            public static string ShopItemFetch = "/shop/shop-item-list";
+            public static string EventList = "/event/event-list";
+            public static string Advertisement = "/advertisement/fetch";
+            public static string GetRewardAfterAds = "/advertisement/watch-advertisement";
+            public static string GetRewardFromINApp = "/transaction/purchase-item";
+            public static string TransactionHistory= "/user/purchase/in-app";
+            public static string GetEnvironmentList = "/environment/environment-list";
+            public static string SaveEnvironmentUnlockData = "/environment/environment-unlock";
+            public static string DailyrewardList = "/reward/Dailyreward-list";
+            public static string GetRecentMatch = "/game/get-opponentList";
+            public static string GetTableList = "/game/get-tableList";
+            public static string GetSearchList = "/game/get-userList";
+            public static string GetDailyReward = "/reward/claim-dailyReward";
+            public static string SaveEventPauseScore = "/game/save-pauseScore";
+            public static string GetEventScore = "/game/get-pauseScore";
+            public static string GetUpdateInformatin = "/system/system-settings";
+            public static string GetEnvironmentListInLeaderBoard = "/event/entire-event-list";
+
+        }
+
+        private void Awake()
+        {
+            if (Instance == null)
+            {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else if (Instance != this)
+            {
+                Destroy(this.gameObject);
+            }
+            versionCode = Application.version;
+
+#if UNITY_IOS
+            // Check the user's consent status.
+            // If the status is undetermined, display the request request:
+            if (Unity.Advertisement.IosSupport.ATTrackingStatusBinding.GetAuthorizationTrackingStatus() == Unity.Advertisement.IosSupport.ATTrackingStatusBinding.AuthorizationTrackingStatus.NOT_DETERMINED)
+            {
+                Unity.Advertisement.IosSupport.ATTrackingStatusBinding.RequestAuthorizationTracking();
+            }
+#endif
+        
+    }
+        public void GetRecentMatch(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(APICoroutineGet("", APIEndPoints.GetRecentMatch, onSuccess, onFailed));
+        }
+        public void GetTableList(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(APICoroutineGet("", APIEndPoints.GetTableList, onSuccess, onFailed));
+        }
+
+        public void GetSearchResult(LeaderboardData Data, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(Data);
+            Debug.Log("GetSearchList Post data is " + postData);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.GetSearchList, onSuccess, onFailed));
+        }
+
+        public void AutoLoginApiDataSet(string msg)
+        {
+            Debug.Log("Auto login msg is " + msg);
+
+            AutoLoginData autoLoginData = JsonConvert.DeserializeObject<AutoLoginData>(msg);
+
+            Debug.Log("totalcoins:" + autoLoginData.data.user_profile.total_available_coins.ToString());
+
+            Modules.totalCoin = autoLoginData.data.user_profile.total_available_coins;
+            Modules.SaveCoin();
+
+            Debug.Log("totalshield:" + Convert.ToInt32(autoLoginData.data.powerups.shield));
+
+            Modules.totalSkis = Convert.ToInt32(autoLoginData.data.powerups.shield);
+            Modules.SaveSkis();
+
+            Modules.totalKey = autoLoginData.data.user_profile.total_available_keys;
+            Modules.SaveKey();
+
+            Modules.TotalKeysWhileLogin = autoLoginData.data.user_profile.total_available_keys;
+            Modules.TotalShieldsWhileLogin = Convert.ToInt32(autoLoginData.data.powerups.shield);
+
+
+        }
+        public void EventList(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(APICoroutineGet("", APIEndPoints.EventList, onSuccess, onFailed));
+        }
+
+        public void LogOut(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(ApiCoroutine("", APIEndPoints.LogOut, onSuccess, onFailed));
+        }
+
+        public void Mark_All_Notification(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(ApiCoroutine("", APIEndPoints.NotificationAllRead, onSuccess, onFailed));
+        }
+
+        public void Fetch_Store_Data(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(APICoroutineGet("", APIEndPoints.ShopItemFetch, onSuccess, onFailed));
+        }
+
+        public void DeleteAccount(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(DeleteAccountApi("", APIEndPoints.DeleteAccount, onSuccess, onFailed));
+        }
+
+        public void NotificationRead(IDclass Id, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(Id);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.NotificationRead, onSuccess, onFailed));
+        }
+
+        public void ClaimAdsReward(Add_id rewardAdClaim, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(rewardAdClaim);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.GetRewardAfterAds, onSuccess, onFailed));
+        }
+
+        public void ClaimReward(RewardIDclass rewardClaim, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(rewardClaim);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.ClaimSpecialReward, onSuccess, onFailed));
+        }
+        public void GetSpinData(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(APICoroutineGetWithQuery("SPIN", APIEndPoints.GetSpecialRewards, onSuccess, onFailed));
+        }
+        public void GetScratchData(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(APICoroutineGetWithQuery("SCRATCH", APIEndPoints.GetSpecialRewards, onSuccess, onFailed));
+        }
+
+        public void EditProfile(EditProfileData editProfileData, byte[] ImageData, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(editProfileData);
+            Debug.Log("editprofiledata"+postData);
+            StartCoroutine(MultiPartApiCoroutine(editProfileData, ImageData,APIEndPoints.EditProfile, onSuccess, onFailed));
+        }
+
+        public void VerifyEmail(GoogleLogin googleLogin,Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(googleLogin);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.VerifyEmail, onSuccess, onFailed));
+            
+        }
+
+        public void AutoLogin(LoginData loginData,Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(loginData);
+            Debug.Log("Auto login data is " + postData);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.AutoLogin, onSuccess, onFailed));
+        }
+
+        public void NotificationList(Action<string> onSuccess, Action<string> onFailed)
+        {
+            // string postData = JsonUtility.ToJson(Data);
+            StartCoroutine(APICoroutineGet("", APIEndPoints.NotificationList, onSuccess, onFailed));
+        }
+
+        public void WhatsNewApi(Action<string> onSuccess, Action<string> onFailed)
+        {
+            // string postData = JsonUtility.ToJson(Data);
+            StartCoroutine(APICoroutineGet("", APIEndPoints.WhatsNew, onSuccess, onFailed));
+           
+        }
+
+        public void GetRewards(Action<string> onSuccess, Action<string> onFailed)
+        {
+           // string postData = JsonUtility.ToJson(Data);
+            StartCoroutine(APICoroutineGet("", APIEndPoints.GetRewards, onSuccess, onFailed));
+        }
+
+        public void GameLeaderboard(LeaderboardData Data, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(Data);
+            Debug.Log("LeaderBoard Post data is " + postData);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.GameLeaderboard, onSuccess, onFailed));
+        }
+
+        public void GoggleRegister(LoginData loginData, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(loginData);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.Register, onSuccess, onFailed));
+        }
+
+        public void Login(LoginData loginData, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(loginData);
+            Debug.Log("Post data is " + postData);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.Login, onSuccess, onFailed));
+        }
+
+        public void GamplayComplete(GameComplete GameCompleteData, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(GameCompleteData);
+            Debug.Log("GamePlayComplete data is " + postData);
+            
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.GameComplete, onSuccess, onFailed));
+        }
+        public void GameHistory(Action<string> onSuccess, Action<string> onFailed)
+        {
+            StartCoroutine(APICoroutineGet("", APIEndPoints.GameHistory, onSuccess, onFailed));
+        }
+
+        public void GetAdvertisement(Action<string> onSuccess, Action<string> onFailed)
+        {
+            // string postData = JsonUtility.ToJson(Data);
+            StartCoroutine(APICoroutineGet("", APIEndPoints.Advertisement, onSuccess, onFailed));
+        }
+
+        public void History(TransationID transationID,Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(transationID);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.TransactionHistory, onSuccess, onFailed));
+        }
+
+        public void GetRewardInapp(InappPurchaseData inappPurchaseData , Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(inappPurchaseData);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.GetRewardFromINApp, onSuccess, onFailed));
+        }
+
+        public void GetEnvironment(Action<string> onSuccess, Action<string> onFailed)
+        {
+            //string postData = JsonUtility.ToJson(environmentDetails);
+            StartCoroutine(ApiCoroutine("", APIEndPoints.GetEnvironmentList, onSuccess, onFailed));
+        }
+        public void SaveEnvironmentUnlockData(EnvironmentUnlockName environmentUnlockName, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(environmentUnlockName);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.SaveEnvironmentUnlockData, onSuccess, onFailed));
+        }
+        public void GetDailyRewardData( Action<string> onSuccess, Action<string> onFailed)
+        {
+            //string postData = JsonUtility.ToJson(dailyRewardData);
+            StartCoroutine(APICoroutineGet("", APIEndPoints.DailyrewardList, onSuccess, onFailed));
+        }
+
+
+        public void GetDailyRewardSuccesfully(DailyRewards dailyReward, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(dailyReward);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.GetDailyReward, onSuccess, onFailed));
+        }
+
+        public void StoreEventPauseSocre(EventPauseScore eventPauseScore, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(eventPauseScore);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.SaveEventPauseScore, onSuccess, onFailed));
+        }
+
+        public void UpdateInformationAboutUpdate(CurrentVersion currentVersion, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(currentVersion);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.GetUpdateInformatin, onSuccess, onFailed));
+        }
+
+        public void CallLeaderBoardEventListAPI(SendEnvironmetInLeaderBoard sendEnvironmetInLeader, Action<string> onSuccess, Action<string> onFailed)
+        {
+            string postData = JsonUtility.ToJson(sendEnvironmetInLeader);
+            StartCoroutine(ApiCoroutine(postData, APIEndPoints.GetEnvironmentListInLeaderBoard, onSuccess, onFailed));
+        }
+
+        IEnumerator ApiCoroutine(string postData, string endPoint, Action<string> onSuccess, Action<string> onFailed)
+        {
+            Debug.LogWarning($"API Calling {BaseURL} : {endPoint} with data : <color=#2596be> { postData} </color>");
+            Debug.Log(BaseURL + endPoint+" :"+postData);
+            using (UnityWebRequest request = new UnityWebRequest(new Uri(BaseURL + endPoint), UnityWebRequest.kHttpVerbPOST))
+            {
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("Token"));
+
+                var jsonBytes = System.Text.Encoding.UTF8.GetBytes(postData);
+                if (postData != "")
+                {
+                    request.uploadHandler = new UploadHandlerRaw(jsonBytes);
+                }
+                request.downloadHandler = new DownloadHandlerBuffer();
+
+                yield return request.SendWebRequest();
+
+                if (request.isNetworkError || request.isHttpError)
+                {
+                    Debug.LogWarning($"{endPoint} Failed! due to : <color=red> {request.error} </color>");
+                    //Debug.Log(request.downloadHandler.text);
+                    if (onFailed != null)
+                    {
+                        onFailed.Invoke(request.downloadHandler.text);
+                        JsonData data = JsonMapper.ToObject(request.downloadHandler.text);
+                        if (data["status"].ToString() == "failure")
+                        {
+                            GlobalErrorPopup.ErrorMsg = data["message"].ToString();
+                            GlobalErrorPopup.TitleMsg = "Error";
+                            ViewController.Instance.ShowPopup(PopupName.GlobalErrorPopup);
+                            // ViewController.Instance.ChangeScreen(ScreenName.LoginScreenScreen);
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"{endPoint} Success! with response : <color=green> {request.downloadHandler.text} </color>");
+                    if (onSuccess != null)
+                    {
+                        JsonData data = JsonMapper.ToObject(request.downloadHandler.text);
+
+                        if(data["status"].ToString() == "404")
+                        {
+                            SessionExpire.instance.errorText.text = data["message"].ToString();
+                            SessionExpire.instance.canvas.enabled = true;
+                        }
+
+                        else if (data["status"].ToString() == "failure")
+                        {
+                            GlobalErrorPopup.ErrorMsg = data["message"].ToString();
+                            GlobalErrorPopup.TitleMsg = "Error";
+                            ViewController.Instance.ShowPopup(PopupName.GlobalErrorPopup);
+                        } 
+                        
+
+                        onSuccess.Invoke(request.downloadHandler.text);
+                    }
+                }
+            }
+        }
+
+        IEnumerator DeleteAccountApi(string postData, string endPoint, Action<string> onSuccess, Action<string> onFailed)
+        {
+            Debug.LogWarning($"API Calling {BaseURL} : {endPoint} with data : <color=#2596be> {postData} </color>");
+            Debug.Log(BaseURL + endPoint + " :" + postData);
+            using (UnityWebRequest request = new UnityWebRequest(new Uri(BaseURL + endPoint), UnityWebRequest.kHttpVerbDELETE))
+            {
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("Token"));
+
+                var jsonBytes = System.Text.Encoding.UTF8.GetBytes(postData);
+                if (postData != "")
+                {
+                    request.uploadHandler = new UploadHandlerRaw(jsonBytes);
+                }
+                request.downloadHandler = new DownloadHandlerBuffer();
+
+                yield return request.SendWebRequest();
+
+                if (request.isNetworkError || request.isHttpError)
+                {
+                    Debug.LogWarning($"{endPoint} Failed! due to : <color=red> {request.error} </color>");
+                    //Debug.Log(request.downloadHandler.text);
+                    if (onFailed != null)
+                    {
+                        onFailed.Invoke(request.downloadHandler.text);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"{endPoint} Success! with response : <color=green> {request.downloadHandler.text} </color>");
+                    if (onSuccess != null)
+                    {
+                        JsonData data = JsonMapper.ToObject(request.downloadHandler.text);
+                        if (data["status"].ToString() == "3")
+                        {
+                            ViewController.Instance.ChangeScreen(ScreenName.LoginScreenScreen);
+                        }
+                        onSuccess.Invoke(request.downloadHandler.text);
+                    }
+                }
+            }
+        }
+
+        public IEnumerator DownloadProfileImage(string url, Image Profile_Image)
+        {
+
+            Debug.Log("uguie" + url);
+
+            UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+            yield return request.SendWebRequest();
+
+            //if (request.isNetworkError || request.isHttpError)
+            //    //callback?.Invoke(false, null);
+            //else
+            //{
+                var texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
+
+            //yield return new WaitForSeconds(3);
+        
+                //callback?.Invoke(true, Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one / 2));
+                Profile_Image.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one / 2);
+           // }
+
+        }
+
+
+
+        public IEnumerator DownloadUserProfileImg(string url, Sprite Profile_Image)
+        {
+            UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+            yield return request.SendWebRequest();
+
+            //if (request.isNetworkError || request.isHttpError)
+            //    //callback?.Invoke(false, null);
+            //else
+            //{
+            var texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
+            //callback?.Invoke(true, Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one / 2));
+            Profile_Image = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one / 2);
+            // }
+
+        }
+
+
+
+        IEnumerator APICoroutineGet(string postData, string endPoint, Action<string> onSuccess, Action<string> onFailed)
+        {
+            Debug.LogWarning($"API Calling {BaseURL} : {endPoint} with data : <color=#2596be> { postData} </color>");
+            Debug.Log(BaseURL + endPoint + postData);
+            using (UnityWebRequest request = new UnityWebRequest(new Uri(BaseURL + endPoint)))
+            {
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("Token"));
+
+                var jsonBytes = System.Text.Encoding.UTF8.GetBytes(postData);
+
+                request.uploadHandler = new UploadHandlerRaw(jsonBytes);
+                request.downloadHandler = new DownloadHandlerBuffer();
+
+                yield return request.SendWebRequest();
+
+                if (request.isNetworkError || request.isHttpError)
+                {
+                    Debug.LogWarning($"{endPoint} Failed! due to : <color=red> {request.error} </color>");
+                    Debug.Log(request.downloadHandler.text);
+                    if (onFailed != null)
+                    {
+                        onFailed.Invoke(request.downloadHandler.text);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"{endPoint} Success! with response : <color=green> {request.downloadHandler.text} </color>");
+                    if (onSuccess != null)
+                    {
+                        JsonData data = JsonMapper.ToObject(request.downloadHandler.text);
+
+
+                        if (data["status"].ToString() == "404")
+                        {
+                            SessionExpire.instance.errorText.text = data["message"].ToString();
+                            SessionExpire.instance.canvas.enabled = true;
+
+                        }
+
+                        else if (data["status"].ToString() == "3")
+                        {
+                            GlobalErrorPopup.ErrorMsg = data["message"].ToString();
+                            GlobalErrorPopup.TitleMsg = "Error";
+                            ViewController.Instance.ShowPopup(PopupName.GlobalErrorPopup);
+                        }
+                        onSuccess.Invoke(request.downloadHandler.text);
+
+                    }
+                      
+                }
+            }
+
+        }
+
+        IEnumerator APICoroutineGetWithQuery(string postData, string endPoint, Action<string> onSuccess, Action<string> onFailed)
+        {
+            Debug.LogWarning($"API Calling {BaseURL} : {endPoint} with data : <color=#2596be> {postData} </color>");
+            Debug.Log(BaseURL + endPoint + "?reward_category=" + postData);
+            using (UnityWebRequest request = new UnityWebRequest(new Uri(BaseURL + endPoint + "?reward_category=" + postData)))
+            {
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("Token"));
+
+                var jsonBytes = System.Text.Encoding.UTF8.GetBytes("");
+
+                request.uploadHandler = new UploadHandlerRaw(jsonBytes);
+                request.downloadHandler = new DownloadHandlerBuffer();
+
+                yield return request.SendWebRequest();
+
+                if (request.isNetworkError || request.isHttpError)
+                {
+                    Debug.LogWarning($"{endPoint} Failed! due to : <color=red> {request.error} </color>");
+                    Debug.Log(request.downloadHandler.text);
+                    if (onFailed != null)
+                    {
+                        onFailed.Invoke(request.downloadHandler.text);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"{endPoint} Success! with response : <color=green> {request.downloadHandler.text} </color>");
+                    if (onSuccess != null)
+                    {
+                        JsonData data = JsonMapper.ToObject(request.downloadHandler.text);
+
+
+                        if (data["status"].ToString() == "404")
+                        {
+                            SessionExpire.instance.errorText.text = data["message"].ToString();
+                            SessionExpire.instance.canvas.enabled = true;
+
+                        }
+
+                        else if (data["status"].ToString() == "3")
+                        {
+                            GlobalErrorPopup.ErrorMsg = data["message"].ToString();
+                            GlobalErrorPopup.TitleMsg = "Error";
+                            ViewController.Instance.ShowPopup(PopupName.GlobalErrorPopup);
+                        }
+                        onSuccess.Invoke(request.downloadHandler.text);
+
+                    }
+
+                }
+            }
+
+        }
+
+
+        IEnumerator MultiPartApiCoroutine(EditProfileData postData, byte[] profile, string endPoint, Action<string> onSuccess, Action<string> onFailed)
+        {
+            Debug.LogWarning($"API Calling {BaseURL} : {endPoint} with data : <color=#2596be> {postData} </color>");
+
+            WWWForm form = new WWWForm();
+            if (postData.username != null)
+            {
+                form.AddField("username", postData.username);
+            }
+            if (postData.email != null)
+            {
+                form.AddField("email", postData.email);
+            }
+            if (postData.number != null)
+            {
+                form.AddField("number", postData.number);
+            }
+            if (postData.cashId != null)
+            {
+                form.AddField("cashId", postData.cashId);
+            }
+
+            if (profile != null)
+            {
+                form.AddBinaryData("image", profile, "pic.png", "image/png");
+            }
+
+            byte[] formData = form.data;
+
+            UnityWebRequest www = UnityWebRequest.Post(BaseURL + endPoint, form);
+            www.SetRequestHeader("Authorization", "Bearer " + GameData.Token);
+            www.method = "Put";
+            yield return www.SendWebRequest();
+
+            if (www.isNetworkError || www.isHttpError)
+            {
+                Debug.Log(www.downloadHandler.text);
+                onFailed.Invoke(www.downloadHandler.text);
+            }
+            else
+            {
+                Debug.Log("Form upload complete!");
+                Debug.Log(www.downloadHandler.text);
+                JsonData data = JsonMapper.ToObject(www.downloadHandler.text);
+                if (data["status"].ToString() == "3")
+                {
+                    Debug.Log("Relogin");
+                    ViewController.Instance.ChangeScreen(ScreenName.SplashScreen);
+                }
+                onSuccess.Invoke(www.downloadHandler.text);
+
+            }
+        }
+
+
+        
+
+
+    }
+
+
+    
